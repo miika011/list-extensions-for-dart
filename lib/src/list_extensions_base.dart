@@ -5,7 +5,7 @@ import 'dart:math';
 
 extension SeparatedIterableExtension<T> on Iterable<T> {
   Iterable<T> separatedBy(T token) {
-    return SeparatedIterable(this, separator: token);
+    return SeparatedIterable(this, token: token);
   }
 }
 
@@ -24,6 +24,13 @@ extension SurroundedListExtension<T> on List<T> {
   SurroundedList<T> surroundedByBuilder(
           T Function(SurroundingToken type) builder) =>
       SurroundedList.builder(this, builder: builder);
+}
+
+extension SeparatedAndSurroundedListExtension<T> on List<T> {
+  List<T> separatedAndSurroundedBy(T token) =>
+      SeparatedAndSurroundedList(this, token);
+  List<T> separatedAndSurroundedByBuilder(T Function(int index) builder) =>
+      SeparatedAndSurroundedList.builder(this, builder);
 }
 
 //Iterator that adds separators between elements like:
@@ -60,13 +67,13 @@ class SeparatedIterator<T> implements Iterator<T> {
 }
 
 class SeparatedIterable<T> extends IterableMixin<T> {
-  final T separator;
+  final T token;
   final Iterable<T> _hookedIterable;
 
-  SeparatedIterable(this._hookedIterable, {required this.separator});
+  SeparatedIterable(this._hookedIterable, {required this.token});
   @override
   Iterator<T> get iterator =>
-      SeparatedIterator<T>(_hookedIterable.iterator, token: separator);
+      SeparatedIterator<T>(_hookedIterable.iterator, token: token);
 }
 
 class SeparatedList<T> extends ListMixin<T> {
@@ -103,6 +110,10 @@ class SeparatedList<T> extends ListMixin<T> {
 
   @override
   T operator [](int index) {
+    if (index < 0 || index >= length) {
+      throw RangeError.range(index, 0, length - 1);
+    }
+
     // let hooked_list = [A,B,C,D] (* is separator)
     //  index|    item
     //  0    :    A (0 on hooked_list)
@@ -112,7 +123,7 @@ class SeparatedList<T> extends ListMixin<T> {
     //  4    :    C (2 on hooked_list)
     //  5    :    * (2 on tokens_index)
     //  6    :    D (3 on hooked_list)
-    if (index.isOdd) {
+    if (index.isOdd && 0 <= index && index < length) {
       return tokenBuilder(index ~/ 2);
     } else {
       return _hookedList[index ~/ 2];
